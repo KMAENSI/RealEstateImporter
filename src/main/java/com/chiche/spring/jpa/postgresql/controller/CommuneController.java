@@ -36,17 +36,14 @@ public class CommuneController {
         try {
             List<Commune> communes = new ArrayList<Commune>();
             System.out.println("show me ------- ");
-            if (description == null){
+            if (description == null) {
                 communeRepository.findAll().forEach(communes::add);
-                if (communeRepository.findAll().isEmpty()){
+                if (communeRepository.findAll().isEmpty()) {
                     System.out.println("empty list  ------- ");
-                }else{
-                    System.out.println("size list  ------- :" +communes );
+                } else {
+                    System.out.println("size list  ------- :" + communes);
                 }
-            }
-
-            else
-                communeRepository.findByDescriptionContaining(description).forEach(communes::add);
+            } else communeRepository.findByDescriptionContaining(description).forEach(communes::add);
 
             if (communes.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -57,53 +54,62 @@ public class CommuneController {
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    @PostMapping("/update")
-    public ResponseEntity<Commune> createTutorial() {
+
+    @PostMapping("/update_commune")
+    public ResponseEntity<Commune> createOrUpdateCommune() {
         try {
 
-            try (
-                    Reader reader = Files.newBufferedReader(Paths.get(SAMPLE_CSV_FILE_PATH));
-                    CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT
-                            .withHeader("communeName", "nombreVente", "prixM2", "FourchetteM2","nombreVefa","prixM2Vefa","fourchetteM2Vefa")
-                            .withIgnoreHeaderCase()
-                            .withTrim());
-            ) {
+            try (Reader reader = Files.newBufferedReader(Paths.get(SAMPLE_CSV_FILE_PATH)); CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withHeader("communeName", "nombreVente", "prixM2", "FourchetteM2", "nombreVefa", "prixM2Vefa", "fourchetteM2Vefa").withIgnoreHeaderCase().withTrim());) {
 
                 for (CSVRecord csvRecord : csvParser) {
                     String communeName = csvRecord.get("communeName");
                     System.out.println("commune name " + communeName);
 
-                    int nombreVente = Integer.parseInt(csvRecord.get("nombreVente").replaceAll("[^\\d.]", ""));
-                    int prixM2 = csvRecord.get("prixM2").contains("*")?0:Integer.parseInt(csvRecord.get("prixM2").replaceAll("[^\\d.]", ""));
-                    String fourchetteM2 = csvRecord.get("FourchetteM2").contains("*")?"":csvRecord.get("FourchetteM2");
-                    if (!"".equals(fourchetteM2)){
-
-                    }
-                    int nombreVefa = Integer.parseInt(csvRecord.get("nombreVefa").replaceAll("[^\\d.]", ""));
-
-                   /* prix_m2 integer,
-                    fourchette_m2_min integer,
-                    fourchette_m2_max integer,
-                    nombre_vefa integer,
-                    prix_m2_vefa integer,
-                    fourchette_m2_vefa_min integer,
-                    fourchette_m2_vefa_max integer,*/
-                    if(communeRepository.findByDescriptionContaining(communeName).isEmpty()){
+                    if (communeRepository.findByDescriptionContaining(communeName).isEmpty()) {
                         // Accessing values by the names assigned to each column
                         Commune commune = communeRepository.save(new Commune(communeName));
-                        SalesData salesData = new SalesData();
-                       // salesData.setCommune(commune.getId());
-                        salesData.setNombreVefa(nombreVefa);
-                        salesData.setNombreVente(nombreVente);
-                        salesData.setPrixM2(prixM2);
-                        salesDataRepository.save(salesData);
-                    }else{
+                    } else {
                         System.out.println("commune existante " + communeName);
                     }
 
                 }
             }
+            return new ResponseEntity<>(HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
+    @PostMapping("/update_metrics")
+    public ResponseEntity<Commune> updateMertrics() {
+        try {
+
+            try (Reader reader = Files.newBufferedReader(Paths.get(SAMPLE_CSV_FILE_PATH)); CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withHeader("communeName", "nombreVente", "prixM2", "FourchetteM2", "nombreVefa", "prixM2Vefa", "fourchetteM2Vefa").withIgnoreHeaderCase().withTrim());) {
+
+                for (CSVRecord csvRecord : csvParser) {
+                    String communeName = csvRecord.get("communeName");
+                    System.out.println("commune name " + communeName);
+                    // get Commune
+                    Commune commune = communeRepository.findByDescriptionContaining(communeName).size() == 1 ? communeRepository.findByDescriptionContaining(communeName).get(0) : null;
+                    int nombreVente = Integer.parseInt(csvRecord.get("nombreVente").replaceAll("[^\\d.]", ""));
+                    int prixM2 = csvRecord.get("prixM2").contains("*") ? 0 : Integer.parseInt(csvRecord.get("prixM2").replaceAll("[^\\d.]", ""));
+                    String fourchetteM2 = csvRecord.get("FourchetteM2").contains("*") ? "" : csvRecord.get("FourchetteM2");
+                    int nombreVefa = Integer.parseInt(csvRecord.get("nombreVefa").replaceAll("[^\\d.]", ""));
+                    if (commune != null) {
+                        System.out.println("commune est  : " + commune.getDescription());
+                        // Accessing values by the names assigned to each column
+                        SalesData salesData = new SalesData();
+                        salesData.setCommune(commune);
+                        salesData.setNombreVefa(nombreVefa);
+                        salesData.setNombreVente(nombreVente);
+                        salesData.setPrixM2(prixM2);
+                        salesDataRepository.save(salesData);
+                    } else {
+                        System.out.println("commune non existante " + communeName);
+                    }
+
+                }
+            }
 
 
             return new ResponseEntity<>(HttpStatus.CREATED);

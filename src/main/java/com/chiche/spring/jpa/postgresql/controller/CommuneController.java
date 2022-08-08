@@ -1,6 +1,5 @@
 package com.chiche.spring.jpa.postgresql.controller;
 
-import antlr.StringUtils;
 import com.chiche.spring.jpa.postgresql.model.Commune;
 import com.chiche.spring.jpa.postgresql.model.SalesData;
 import com.chiche.spring.jpa.postgresql.repository.CommuneRepository;
@@ -34,16 +33,12 @@ public class CommuneController {
     @GetMapping("/communes")
     public ResponseEntity<List<Commune>> getAllCommunes(@RequestParam(required = false) String description) {
         try {
-            List<Commune> communes = new ArrayList<Commune>();
+            List<Commune> communes = new ArrayList<>();
             System.out.println("show me ------- ");
             if (description == null) {
                 communeRepository.findAll().forEach(communes::add);
-                if (communeRepository.findAll().isEmpty()) {
-                    System.out.println("empty list  ------- ");
-                } else {
-                    System.out.println("size list  ------- :" + communes);
-                }
-            } else communeRepository.findByDescriptionContaining(description).forEach(communes::add);
+            } else
+                communeRepository.findByDescriptionContaining(description).forEach(communes::add);
 
             if (communes.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -55,11 +50,11 @@ public class CommuneController {
         }
     }
 
-    @PostMapping("/update_commune")
+    @PostMapping("/update_communes")
     public ResponseEntity<Commune> createOrUpdateCommune() {
         try {
 
-            try (Reader reader = Files.newBufferedReader(Paths.get(SAMPLE_CSV_FILE_PATH)); CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withHeader("communeName", "nombreVente", "prixM2", "FourchetteM2", "nombreVefa", "prixM2Vefa", "fourchetteM2Vefa").withIgnoreHeaderCase().withTrim());) {
+            try (Reader reader = Files.newBufferedReader(Paths.get(SAMPLE_CSV_FILE_PATH)); CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withHeader("communeName", "nombreVente", "prixM2", "FourchetteM2", "nombreVefa", "prixM2Vefa", "fourchetteM2Vefa").withIgnoreHeaderCase().withTrim())) {
 
                 for (CSVRecord csvRecord : csvParser) {
                     String communeName = csvRecord.get("communeName");
@@ -84,11 +79,10 @@ public class CommuneController {
     public ResponseEntity<Commune> updateMertrics() {
         try {
 
-            try (Reader reader = Files.newBufferedReader(Paths.get(SAMPLE_CSV_FILE_PATH)); CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withHeader("communeName", "nombreVente", "prixM2", "FourchetteM2", "nombreVefa", "prixM2Vefa", "fourchetteM2Vefa").withIgnoreHeaderCase().withTrim());) {
+            try (Reader reader = Files.newBufferedReader(Paths.get(SAMPLE_CSV_FILE_PATH)); CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withHeader("communeName", "nombreVente", "prixM2", "FourchetteM2", "nombreVefa", "prixM2Vefa", "fourchetteM2Vefa").withIgnoreHeaderCase().withTrim())) {
 
                 for (CSVRecord csvRecord : csvParser) {
                     String communeName = csvRecord.get("communeName");
-                    System.out.println("commune name " + communeName);
                     // get Commune
                     Commune commune = communeRepository.findByDescriptionContaining(communeName).size() == 1 ? communeRepository.findByDescriptionContaining(communeName).get(0) : null;
                     int nombreVente = Integer.parseInt(csvRecord.get("nombreVente").replaceAll("[^\\d.]", ""));
@@ -99,6 +93,7 @@ public class CommuneController {
                         System.out.println("commune est  : " + commune.getDescription());
                         // Accessing values by the names assigned to each column
                         SalesData salesData = new SalesData();
+
                         salesData.setCommune(commune);
                         salesData.setNombreVefa(nombreVefa);
                         salesData.setNombreVente(nombreVente);
@@ -114,7 +109,6 @@ public class CommuneController {
 
             return new ResponseEntity<>(HttpStatus.CREATED);
         } catch (Exception e) {
-            System.out.println(e);
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
